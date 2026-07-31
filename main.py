@@ -1,14 +1,15 @@
 import asyncio
 import os
 from aiohttp import web
-from pyrogram import Client, filters, idle
+from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import config
 from extractor import extract_diskwala_data
 
 
+# Render Health Check Web Server
 async def handle_health(request):
-    return web.Response(text="Diskwala Pro Bot is Running!")
+    return web.Response(text="Diskwala Pro Bot is Active!")
 
 
 async def start_web_server():
@@ -21,6 +22,7 @@ async def start_web_server():
     await site.start()
 
 
+# Pyrogram Bot Client
 bot = Client(
     "diskwala_bot",
     api_id=config.API_ID,
@@ -42,52 +44,59 @@ async def start_cmd(client, message):
 async def process_link(client, message):
     text = message.text.strip()
 
-    if "diskwala" not in text and "http" not in text:
+    # Ignore start command
+    if text.startswith("/"):
+        return
+
+    if "http" not in text:
         await message.reply_text("❌ Please valid Diskwala link pampandi!")
         return
 
     status_msg = await message.reply_text("🔎 **Fetching Link Details...**")
 
-    res = await extract_diskwala_data(text)
+    try:
+        res = await extract_diskwala_data(text)
 
-    if res["stream_url"]:
-        stream_url = res["stream_url"]
-        title = res["title"]
+        if res.get("stream_url"):
+            stream_url = res["stream_url"]
+            title = res.get("title", "Diskwala Video File")
 
-        buttons = InlineKeyboardMarkup(
-            [
+            buttons = InlineKeyboardMarkup(
                 [
-                    InlineKeyboardButton(
-                        "🎬 Watch / Stream Online", url=stream_url
-                    )
-                ],
-                [
-                    InlineKeyboardButton("📥 Direct Fast Download", url=stream_url)
-                ],
-            ]
-        )
+                    [
+                        InlineKeyboardButton(
+                            "🎬 Watch / Stream Online", url=stream_url
+                        )
+                    ],
+                    [
+                        InlineKeyboardButton(
+                            "📥 Direct Fast Download", url=stream_url
+                        )
+                    ],
+                ]
+            )
 
-        caption_text = (
-            f"📂 **File Name:** `{title}`\n"
-            "⚡ **Status:** Direct Link Extracted Successfully!\n\n"
-            "👇 Choose an option below to play or download:"
-        )
+            caption_text = (
+                f"📂 **File Name:** `{title}`\n"
+                "⚡ **Status:** Direct Link Extracted Successfully!\n\n"
+                "👇 Choose an option below to play or download:"
+            )
 
-        await status_msg.edit_text(caption_text, reply_markup=buttons)
-    else:
-        err = res["error"] or "Could not extract stream link."
-        await status_msg.edit_text(f"❌ **Extraction Failed!**\n\nDetails: `{err}`")
-
-
-async def main():
-    await start_web_server()
-    await bot.start()
-    print("Diskwala Pro Bot Started!")
-    await idle()
-    await bot.stop()
+            await status_msg.edit_text(caption_text, reply_markup=buttons)
+        else:
+            err = res.get("error") or "Could not extract stream link."
+            await status_msg.edit_text(
+                f"❌ **Extraction Failed!**\n\nDetails: `{err}`"
+            )
+    except Exception as e:
+        await status_msg.edit_text(f"❌ Error: {str(e)}")
 
 
 if __name__ == "__main__":
+    # Start web server before bot loop
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    loop.create_task(start_web_server())
+
+    print("Starting Diskwala Pro Bot...")
+    bot.run()
     
