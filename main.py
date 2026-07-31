@@ -91,17 +91,6 @@ async def process_link(client, message):
 
 
 async def main():
-    # Check Environment Variables first
-    if not config.API_ID or not config.API_HASH or not config.BOT_TOKEN:
-        print("\n" + "=" * 50)
-        print("❌ CRITICAL: MISSING ENVIRONMENT VARIABLES IN RENDER!")
-        print(f"• API_ID   : {'SET' if config.API_ID else 'MISSING / ZERO'}")
-        print(f"• API_HASH : {'SET' if config.API_HASH else 'MISSING'}")
-        print(f"• BOT_TOKEN: {'SET' if config.BOT_TOKEN else 'MISSING'}")
-        print("Please check Render Environment tab & click Save Changes!")
-        print("=" * 50 + "\n")
-        return
-
     await start_web_server()
     await bot.start()
     print("✅ Diskwala Pro Bot Started Successfully!")
