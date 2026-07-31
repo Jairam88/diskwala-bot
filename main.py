@@ -2,16 +2,18 @@ import asyncio
 import json
 import os
 import re
+import sys
+import traceback
 from aiohttp import ClientSession, ClientTimeout, web
-from pyrogram import Client, filters, idle
+from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 # =========================================================
-# MEE TELEGRAM DETAILS (REPLACE WITH YOUR REAL CREDENTIALS):
+# MEE TELEGRAM DETAILS (MEE REAL VALUES PASTE CHEYYI):
 # =========================================================
-API_ID = 30918158  # Quotes LEKUNDA mee Numeric API ID ivvali
+API_ID = 30918158  # ONLY numbers (e.g., 28471932) - Quotes VADDHU!
 API_HASH = "795178cb0ef1cc68690b1bbe82960214"  # Quotes LONA mee API Hash string
-BOT_TOKEN = "7999558903:AAFmnpddylgWzlofbslPYtviziARBYya-i0"  # Quotes LONA mee BotFather Token
+BOT_TOKEN = "7999558903:AAFmnpddylgWzlofbslPYtviziARBYya-i0"  # Quotes LONA mee Bot Token
 # =========================================================
 
 HEADERS = {
@@ -22,9 +24,9 @@ HEADERS = {
 }
 
 
-# Render Web Server Keep-Alive
+# Web server for Render health check
 async def handle_health(request):
-    return web.Response(text="Diskwala Bot is Live & Active!")
+    return web.Response(text="Diskwala Pro Bot is Active!")
 
 
 async def start_web_server():
@@ -220,13 +222,20 @@ async def handle_msg(client, message):
             os.remove(file_path)
 
 
-# Clean Multi-task Execution Method
 async def main():
-    await start_web_server()
-    await bot.start()
-    print("🚀 Diskwala Bot Successfully Live!")
-    await idle()
-    await bot.stop()
+    try:
+        print("🚀 Starting Web Server...")
+        await start_web_server()
+        print("🚀 Starting Telegram Bot...")
+        await bot.start()
+        print("✅ Diskwala Bot is Fully LIVE and Operational!")
+        while True:
+            await asyncio.sleep(3600)
+    except Exception as e:
+        print(
+            f"❌ CRITICAL BOT ERROR: {e}\n{traceback.format_exc()}",
+            file=sys.stderr,
+        )
 
 
 if __name__ == "__main__":
