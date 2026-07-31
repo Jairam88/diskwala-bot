@@ -1,7 +1,7 @@
 import asyncio
 import os
 from aiohttp import web
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import config
 from extractor import extract_diskwala_data
@@ -9,7 +9,7 @@ from extractor import extract_diskwala_data
 
 # Render Health Check Web Server
 async def handle_health(request):
-    return web.Response(text="Diskwala Pro Bot is Active!")
+    return web.Response(text="Diskwala Pro Bot is Running!")
 
 
 async def start_web_server():
@@ -22,7 +22,6 @@ async def start_web_server():
     await site.start()
 
 
-# Pyrogram Bot Client
 bot = Client(
     "diskwala_bot",
     api_id=config.API_ID,
@@ -44,7 +43,6 @@ async def start_cmd(client, message):
 async def process_link(client, message):
     text = message.text.strip()
 
-    # Ignore start command
     if text.startswith("/"):
         return
 
@@ -92,11 +90,26 @@ async def process_link(client, message):
         await status_msg.edit_text(f"❌ Error: {str(e)}")
 
 
-if __name__ == "__main__":
-    # Start web server before bot loop
-    loop = asyncio.get_event_loop()
-    loop.create_task(start_web_server())
+async def main():
+    # Check Environment Variables first
+    if not config.API_ID or not config.API_HASH or not config.BOT_TOKEN:
+        print("\n" + "=" * 50)
+        print("❌ CRITICAL: MISSING ENVIRONMENT VARIABLES IN RENDER!")
+        print(f"• API_ID   : {'SET' if config.API_ID else 'MISSING / ZERO'}")
+        print(f"• API_HASH : {'SET' if config.API_HASH else 'MISSING'}")
+        print(f"• BOT_TOKEN: {'SET' if config.BOT_TOKEN else 'MISSING'}")
+        print("Please check Render Environment tab & click Save Changes!")
+        print("=" * 50 + "\n")
+        return
 
-    print("Starting Diskwala Pro Bot...")
-    bot.run()
+    await start_web_server()
+    await bot.start()
+    print("✅ Diskwala Pro Bot Started Successfully!")
+    await idle()
+    await bot.stop()
+
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
     
