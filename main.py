@@ -2,12 +2,13 @@ import asyncio
 import os
 from aiohttp import web
 from pyrogram import Client, filters, idle
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import config
-from extractor import extract_direct_url
+from extractor import extract_diskwala_data
 
 
 async def handle_health(request):
-    return web.Response(text="Diskwala Bot Running!")
+    return web.Response(text="Diskwala Pro Bot is Running!")
 
 
 async def start_web_server():
@@ -30,51 +31,58 @@ bot = Client(
 
 @bot.on_message(filters.command("start"))
 async def start_cmd(client, message):
-    await message.reply_text("👋 Hi Babai! Diskwala link pampu, bypass chesi istha!")
+    await message.reply_text(
+        f"👋 **Hello {message.from_user.first_name}!**\n\n"
+        "⚡ **Welcome to Diskwala Direct Downloader Bot.**\n\n"
+        "Diskwala link pampi direct video stream & download links ready teeskondi!"
+    )
 
 
 @bot.on_message(filters.text & filters.private)
-async def handle_diskwala_link(client, message):
-    user_text = message.text.strip()
+async def process_link(client, message):
+    text = message.text.strip()
 
-    if "http" not in user_text:
-        await message.reply_text("❌ Please valid Diskwala URL pampu mowa!")
+    if "diskwala" not in text and "http" not in text:
+        await message.reply_text("❌ Please valid Diskwala link pampandi!")
         return
 
-    status_msg = await message.reply_text("⏳ Processing Link...")
+    status_msg = await message.reply_text("🔎 **Fetching Link Details...**")
 
-    try:
-        stream_link, debug_info = await extract_direct_url(user_text)
+    res = await extract_diskwala_data(text)
 
-        if stream_link:
-            reply_content = (
-                "🎉 **Video Link Extracted!**\n\n"
-                f"🔗 **Direct Stream URL:**\n`{stream_link}`\n\n"
-                "💡 *Tip: VLC player lo watch cheskovachu!*"
-            )
-            await status_msg.edit_text(reply_content)
-        else:
-            status = debug_info.get("status", "N/A")
-            err = debug_info.get("error", "None")
-            keys = "\n".join(debug_info.get("found_keys", [])) or "None"
+    if res["stream_url"]:
+        stream_url = res["stream_url"]
+        title = res["title"]
 
-            debug_msg = (
-                "⚠️ **Video link dorakaledhu babai.**\n\n"
-                "🔍 **Diagnostic Info:**\n"
-                f"• **HTTP Status:** `{status}`\n"
-                f"• **Error:** `{err}`\n"
-                f"• **Found JSON Keys:**\n`{keys}`"
-            )
-            await status_msg.edit_text(debug_msg)
+        buttons = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "🎬 Watch / Stream Online", url=stream_url
+                    )
+                ],
+                [
+                    InlineKeyboardButton("📥 Direct Fast Download", url=stream_url)
+                ],
+            ]
+        )
 
-    except Exception as err:
-        await status_msg.edit_text(f"❌ Error: {str(err)}")
+        caption_text = (
+            f"📂 **File Name:** `{title}`\n"
+            "⚡ **Status:** Direct Link Extracted Successfully!\n\n"
+            "👇 Choose an option below to play or download:"
+        )
+
+        await status_msg.edit_text(caption_text, reply_markup=buttons)
+    else:
+        err = res["error"] or "Could not extract stream link."
+        await status_msg.edit_text(f"❌ **Extraction Failed!**\n\nDetails: `{err}`")
 
 
 async def main():
     await start_web_server()
     await bot.start()
-    print("Bot started!")
+    print("Diskwala Pro Bot Started!")
     await idle()
     await bot.stop()
 
