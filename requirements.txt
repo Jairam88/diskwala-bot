@@ -1,5 +1,7 @@
 pyrogram
 tgcrypto
 aiohttp
+curl_cffi
+
 
 
