@@ -1,0 +1,5 @@
+pyrogram
+tgcrypto
+playwright
+beautifulsoup4
+aiohttp
