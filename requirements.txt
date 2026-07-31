@@ -1,5 +1,6 @@
 pyrogram
 tgcrypto
-playwright
+playwright==1.40.0
 beautifulsoup4
 aiohttp
+
