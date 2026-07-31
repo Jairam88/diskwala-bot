@@ -3,25 +3,28 @@ import json
 import os
 import re
 from aiohttp import ClientSession, ClientTimeout, web
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 # =========================================================
-# 1. MEE TELEGRAM DETAILS (EXACT VALUES):
+# MEE TELEGRAM DETAILS (REPLACE WITH YOUR REAL CREDENTIALS):
 # =========================================================
-API_ID = 30918158  # Quotes lekunda numeric ID
-API_HASH = "795178cb0ef1cc68690b1bbe82960214"  # Mee Hash string
-BOT_TOKEN = "7999558903:AAFmnpddylgWzlofbslPYtviziARBYya-i0"  # Mee Bot token
+API_ID = 30918158  # Quotes LEKUNDA mee Numeric API ID ivvali
+API_HASH = "795178cb0ef1cc68690b1bbe82960214"  # Quotes LONA mee API Hash string
+BOT_TOKEN = "7999558903:AAFmnpddylgWzlofbslPYtviziARBYya-i0"  # Quotes LONA mee BotFather Token
 # =========================================================
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
+        " like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
 }
 
 
-# Render Health Check Keeper
+# Render Web Server Keep-Alive
 async def handle_health(request):
-    return web.Response(text="Diskwala Pro Bot is Alive!")
+    return web.Response(text="Diskwala Bot is Live & Active!")
 
 
 async def start_web_server():
@@ -82,7 +85,9 @@ def find_url_in_json(data):
 
 async def extract_url(diskwala_url):
     try:
-        file_id_match = re.search(r"/(?:app|file|e)/([a-zA-Z0-9]+)", diskwala_url)
+        file_id_match = re.search(
+            r"/(?:app|file|e)/([a-zA-Z0-9]+)", diskwala_url
+        )
         file_id = file_id_match.group(1) if file_id_match else None
 
         async with ClientSession(
@@ -100,7 +105,9 @@ async def extract_url(diskwala_url):
                                 found = find_url_in_json(json_data)
                                 if found:
                                     if found.startswith("/"):
-                                        found = "https://www.diskwala.com" + found
+                                        found = (
+                                            "https://www.diskwala.com" + found
+                                        )
                                     return found, None
                     except Exception:
                         pass
@@ -109,7 +116,8 @@ async def extract_url(diskwala_url):
                 if resp.status == 200:
                     html = await resp.text()
                     match = re.search(
-                        r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+                        r'<script id="__NEXT_DATA__"'
+                        r' type="application/json">(.*?)</script>',
                         html,
                         re.DOTALL,
                     )
@@ -123,11 +131,12 @@ async def extract_url(diskwala_url):
             if file_id:
                 return f"https://www.diskwala.com/stream/{file_id}", None
 
-            return None, "Direct video link find avvaledhu."
+            return None, "Direct link extract avvaledhu."
     except Exception as e:
         return None, str(e)
 
 
+# Pyrogram Bot Client
 bot = Client(
     "diskwala_bot",
     api_id=API_ID,
@@ -141,7 +150,7 @@ async def start_cmd(client, message):
     await message.reply_text(
         f"👋 **Hello {message.from_user.first_name}!**\n\n"
         "⚡ **Welcome to Diskwala Direct Bot.**\n"
-        "Diskwala link pampi, TeraBox bot style lo Telegram Video File & Fast Links teeskondi!"
+        "Diskwala link pampi, direct Telegram Video File teeskondi!"
     )
 
 
@@ -201,7 +210,6 @@ async def handle_msg(client, message):
         await status.delete()
 
     except Exception:
-        # Fallback to TeraBestBot style buttons if download/upload hits memory limit
         await status.edit_text(
             "⚡ **Direct Link Extracted Successfully!**\n\nChoose an option below:",
             reply_markup=buttons,
@@ -212,9 +220,15 @@ async def handle_msg(client, message):
             os.remove(file_path)
 
 
+# Clean Multi-task Execution Method
+async def main():
+    await start_web_server()
+    await bot.start()
+    print("🚀 Diskwala Bot Successfully Live!")
+    await idle()
+    await bot.stop()
+
+
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.create_task(start_web_server())
-    print("🚀 Diskwala Pro Bot is Starting...")
-    bot.run()
+    asyncio.run(main())
     
