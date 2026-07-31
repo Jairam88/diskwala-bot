@@ -6,7 +6,6 @@ import config
 from extractor import extract_direct_url
 
 
-# --- Render & UptimeRobot Kosam Small Web Server ---
 async def handle_health(request):
     return web.Response(text="Bot is Alive & Running 24/7!")
 
@@ -19,10 +18,8 @@ async def start_web_server():
     port = int(os.environ.get("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    print(f"Web server listening on port {port}")
 
 
-# --- Telegram Bot Setup ---
 bot = Client(
     "diskwala_bot",
     api_id=config.API_ID,
@@ -54,23 +51,38 @@ async def handle_diskwala_link(client, message):
     )
 
     try:
-        stream_link = await extract_direct_url(user_text)
+        stream_link, debug_info = await extract_direct_url(user_text)
 
         if stream_link:
             reply_content = (
                 "🎉 **Video Link Extracted!**\n\n"
                 f"🔗 **Direct Stream URL:**\n`{stream_link}`\n\n"
-                "💡 *Tip: Ee link ni VLC media player or Telegram browser lo"
-                " paste chesi direct watch cheyyochu!*"
+                "💡 *Tip: Ee link ni VLC media player lo paste chesi watch"
+                " cheyyochu!*"
             )
             await status_msg.edit_text(reply_content)
         else:
-            await status_msg.edit_text(
-                "⚠️ Diskwala link nundi direct video stream link dorakaledhu"
-                " babai."
+            cf_status = (
+                "YES 🔴 (Render IP Blocked by Cloudflare)"
+                if debug_info.get("cloudflare_blocked")
+                else "NO 🟢"
             )
+            title = debug_info.get("title", "Unknown")
+            status = debug_info.get("status", "N/A")
+            err = debug_info.get("error", "None")
+
+            debug_msg = (
+                "⚠️ **Video link dorakaledhu babai.**\n\n"
+                "🔍 **Diagnostic Info:**\n"
+                f"• **Page Title:** `{title}`\n"
+                f"• **HTTP Status Code:** `{status}`\n"
+                f"• **Cloudflare Blocked?:** `{cf_status}`\n"
+                f"• **Error Details:** `{err}`"
+            )
+            await status_msg.edit_text(debug_msg)
+
     except Exception as err:
-        await status_msg.edit_text(f"❌ Error vacchindhi mowa: {str(err)}")
+        await status_msg.edit_text(f"❌ Critical Error: {str(err)}")
 
 
 async def main():
