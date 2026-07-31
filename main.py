@@ -5,10 +5,9 @@ import re
 from aiohttp import web
 from curl_cffi.requests import AsyncSession
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 # =========================================================
-# 1. MEE TELEGRAM DETAILS (ALREADY WORKING ONES):
+# MEE TELEGRAM DETAILS (ALREADY WORKING):
 # =========================================================
 API_ID = 30918158  # Quotes lekunda numeric ID
 API_HASH = "795178cb0ef1cc68690b1bbe82960214"  # Mee Hash string
@@ -16,9 +15,9 @@ BOT_TOKEN = "7999558903:AAFmnpddylgWzlofbslPYtviziARBYya-i0"  # Mee Bot token
 # =========================================================
 
 
-# Render Port Keeper
+# Render Health Check Keeper
 async def handle_health(request):
-    return web.Response(text="Diskwala Bot is Alive!")
+    return web.Response(text="Diskwala Auto-Uploader Bot is Alive!")
 
 
 async def start_web_server():
@@ -32,7 +31,6 @@ async def start_web_server():
 
 
 def find_url_in_json(data):
-    """Recursively search JSON tree for any media/stream link."""
     if isinstance(data, dict):
         for k, v in data.items():
             k_str = str(k).lower()
@@ -49,7 +47,6 @@ def find_url_in_json(data):
                             ".css",
                             ".js",
                             ".ico",
-                            ".webp",
                         ]
                     ):
                         if (
@@ -64,9 +61,7 @@ def find_url_in_json(data):
                                     "file",
                                     "url",
                                     "path",
-                                    "src",
                                     "link",
-                                    "media",
                                 ]
                             ):
                                 return clean_v
@@ -87,20 +82,16 @@ async def extract_url(diskwala_url):
         file_id = file_id_match.group(1) if file_id_match else None
 
         async with AsyncSession(impersonate="chrome120") as session:
-            # 1. Try Diskwala Internal API Routes
+            # 1. Internal API
             if file_id:
-                api_endpoints = [
+                for api in [
                     f"https://www.diskwala.com/api/file/{file_id}",
-                    f"https://www.diskwala.com/api/v1/file/{file_id}",
-                    f"https://www.diskwala.com/api/download/{file_id}",
                     f"https://www.diskwala.com/api/stream/{file_id}",
-                ]
-                for api in api_endpoints:
+                ]:
                     try:
                         res = await session.get(api, timeout=5)
                         if res.status_code == 200:
-                            data = res.json()
-                            found = find_url_in_json(data)
+                            found = find_url_in_json(res.json())
                             if found:
                                 if found.startswith("/"):
                                     found = "https://www.diskwala.com" + found
@@ -108,36 +99,29 @@ async def extract_url(diskwala_url):
                     except Exception:
                         pass
 
-            # 2. Try HTML Page Next.js Data Parse
+            # 2. Next.js Page Data
             resp = await session.get(diskwala_url, timeout=15)
             if resp.status_code == 200:
-                html = resp.text
                 match = re.search(
                     r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
-                    html,
+                    resp.text,
                     re.DOTALL,
                 )
                 if match:
-                    try:
-                        data = json.loads(match.group(1))
-                        found = find_url_in_json(data)
-                        if found:
-                            if found.startswith("/"):
-                                found = "https://www.diskwala.com" + found
-                            return found, None
-                    except Exception:
-                        pass
+                    found = find_url_in_json(json.loads(match.group(1)))
+                    if found:
+                        if found.startswith("/"):
+                            found = "https://www.diskwala.com" + found
+                        return found, None
 
-            # 3. Fallback Stream URL Pattern
             if file_id:
                 return f"https://www.diskwala.com/stream/{file_id}", None
 
-            return None, "No direct stream link found on page"
+            return None, "Direct link find avvaledhu."
     except Exception as e:
         return None, str(e)
 
 
-# Pyrogram Bot
 bot = Client(
     "diskwala_bot",
     api_id=API_ID,
@@ -150,8 +134,8 @@ bot = Client(
 async def start_cmd(client, message):
     await message.reply_text(
         f"👋 **Hello {message.from_user.first_name}!**\n\n"
-        "⚡ **Welcome to Diskwala Downloader Bot.**\n"
-        "Diskwala link pampi direct video stream & download buttons teeskondi!"
+        "⚡ **Welcome to Diskwala Direct Video Bot.**\n"
+        "Diskwala link pampi, direct ga Telegram Video file teeskondi!"
     )
 
 
@@ -161,30 +145,55 @@ async def handle_msg(client, message):
     if text.startswith("/") or "http" not in text:
         return
 
-    status = await message.reply_text("🔎 **Fetching direct link...**")
+    status = await message.reply_text("🔎 **Extracting Video Stream Link...**")
     stream_url, err = await extract_url(text)
 
-    if stream_url:
-        buttons = InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(
-                        "🎬 Watch / Stream Online", url=stream_url
-                    )
-                ],
-                [InlineKeyboardButton("📥 Fast Direct Download", url=stream_url)],
-            ]
-        )
-        await status.edit_text(
-            "⚡ **Direct Link Extracted Successfully!**\n\nChoose an option below:",
-            reply_markup=buttons,
-        )
-    else:
+    if not stream_url:
         await status.edit_text(f"❌ **Extraction Failed!**\nDetails: `{err}`")
+        return
+
+    file_path = f"video_{message.id}.mp4"
+
+    try:
+        await status.edit_text("📥 **Downloading Video from Diskwala...**")
+
+        async with AsyncSession(impersonate="chrome120") as session:
+            async with session.get(
+                stream_url, timeout=120, stream=True
+            ) as resp:
+                if resp.status_code == 200:
+                    with open(file_path, "wb") as f:
+                        async for chunk in resp.aiter_content(chunk_size=1024 * 1024):
+                            if chunk:
+                                f.write(chunk)
+                else:
+                    await status.edit_text(
+                        f"❌ Download Failed! Status: {resp.status_code}"
+                    )
+                    return
+
+        await status.edit_text("📤 **Uploading Video to Telegram...**")
+
+        await client.send_video(
+            chat_id=message.chat.id,
+            video=file_path,
+            caption="⚡ **Downloaded via Diskwala Bot**",
+            supports_streaming=True,
+        )
+
+        await status.delete()
+
+    except Exception as e:
+        await status.edit_text(f"❌ Processing Error: {str(e)}")
+
+    finally:
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.create_task(start_web_server())
-    print("🚀 Diskwala Bot is Starting...")
+    print("🚀 Diskwala Auto-Uploader Bot is Starting...")
     bot.run()
+    
