@@ -9,11 +9,11 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 # =========================================================
-# MEE TELEGRAM DETAILS (REPLACE WITH YOUR REAL CREDENTIALS):
+# MEE TELEGRAM DETAILS (CONFIGURED):
 # =========================================================
-API_ID = 30918158  # Quotes LEKUNDA mee Numeric API ID
-API_HASH = "795178cb0ef1cc68690b1bbe82960214"  # Quotes LONA mee API Hash string
-BOT_TOKEN = "7999558903:AAFmnpddylgWzlofbslPYtviziARBYya-i0"  # Quotes LONA mee Bot Token
+API_ID = 30918158
+API_HASH = "795178cb0ef1cc68690b1bbe82960214"
+BOT_TOKEN = "7999558903:AAFmnpddylgWzlofbslPYtviziARBYya-i0"
 # =========================================================
 
 HEADERS = {
@@ -137,7 +137,6 @@ async def extract_url(diskwala_url):
         return None, str(e)
 
 
-# Pyrogram Client with IN_MEMORY Session to prevent Render file lock crashes
 bot = Client(
     "diskwala_bot",
     api_id=API_ID,
@@ -149,6 +148,7 @@ bot = Client(
 
 @bot.on_message(filters.command("start"))
 async def start_cmd(client, message):
+    print(f"📩 START command received from: {message.from_user.first_name}")
     await message.reply_text(
         f"👋 **Hello {message.from_user.first_name}!**\n\n"
         "⚡ **Welcome to Diskwala Direct Bot.**\n"
@@ -159,6 +159,8 @@ async def start_cmd(client, message):
 @bot.on_message(filters.text & filters.private)
 async def handle_msg(client, message):
     text = message.text.strip()
+    print(f"📩 Link received: {text}")
+
     if text.startswith("/") or "http" not in text:
         return
 
@@ -188,7 +190,15 @@ async def main():
         await start_web_server()
         print("🚀 Starting Telegram Bot...")
         await bot.start()
-        print("✅ Diskwala Bot is LIVE!")
+
+        # Clear existing webhooks to allow polling
+        await bot.delete_webhook(drop_pending_updates=True)
+
+        me = await bot.get_me()
+        print(
+            f"✅ Diskwala Bot is LIVE & CONNECTED! Username: @{me.username}"
+        )
+
         while True:
             await asyncio.sleep(3600)
     except Exception as e:
