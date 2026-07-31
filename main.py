@@ -1,13 +1,13 @@
 import asyncio
 import os
 from aiohttp import web
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 import config
 from extractor import extract_direct_url
 
 
 async def handle_health(request):
-    return web.Response(text="Bot is Alive & Running 24/7!")
+    return web.Response(text="Diskwala Bot is Running 24/7!")
 
 
 async def start_web_server():
@@ -31,9 +31,8 @@ bot = Client(
 @bot.on_message(filters.command("start"))
 async def start_cmd(client, message):
     await message.reply_text(
-        "👋 **Hi Babai!**\n\n"
-        "Diskwala link emaina unte ikkada paste cheyyi. Direct stream link"
-        " extract chesi istha!"
+        "👋 **Hi Babai!**\n\nDiskwala link emaina unte ikkada paste"
+        " cheyyi. Direct stream link extract chesi istha!"
     )
 
 
@@ -46,7 +45,7 @@ async def handle_diskwala_link(client, message):
         return
 
     status_msg = await message.reply_text(
-        "⏳ **Processing Link...** Diskwala link bypass chesthunna, 5-10 seconds"
+        "⏳ **Processing Link...** Diskwala link bypass chesthunna, 2 seconds"
         " wait cheyyi..."
     )
 
@@ -63,18 +62,16 @@ async def handle_diskwala_link(client, message):
             await status_msg.edit_text(reply_content)
         else:
             cf_status = (
-                "YES 🔴 (Render IP Blocked by Cloudflare)"
+                "YES 🔴 (Cloudflare Blocked)"
                 if debug_info.get("cloudflare_blocked")
                 else "NO 🟢"
             )
-            title = debug_info.get("title", "Unknown")
             status = debug_info.get("status", "N/A")
             err = debug_info.get("error", "None")
 
             debug_msg = (
                 "⚠️ **Video link dorakaledhu babai.**\n\n"
                 "🔍 **Diagnostic Info:**\n"
-                f"• **Page Title:** `{title}`\n"
                 f"• **HTTP Status Code:** `{status}`\n"
                 f"• **Cloudflare Blocked?:** `{cf_status}`\n"
                 f"• **Error Details:** `{err}`"
@@ -88,8 +85,9 @@ async def handle_diskwala_link(client, message):
 async def main():
     await start_web_server()
     await bot.start()
-    print("Bot started running successfully...")
-    await asyncio.Event().wait()
+    print("Bot started successfully!")
+    await idle()
+    await bot.stop()
 
 
 if __name__ == "__main__":
