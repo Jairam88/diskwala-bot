@@ -9,9 +9,9 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 # =========================================================
-# MEE TELEGRAM DETAILS (MEE REAL VALUES PASTE CHEYYI):
+# MEE TELEGRAM DETAILS (REPLACE WITH YOUR REAL CREDENTIALS):
 # =========================================================
-API_ID = 30918158  # ONLY numbers (e.g., 28471932) - Quotes VADDHU!
+API_ID = 30918158  # Quotes LEKUNDA mee Numeric API ID
 API_HASH = "795178cb0ef1cc68690b1bbe82960214"  # Quotes LONA mee API Hash string
 BOT_TOKEN = "7999558903:AAFmnpddylgWzlofbslPYtviziARBYya-i0"  # Quotes LONA mee Bot Token
 # =========================================================
@@ -24,9 +24,8 @@ HEADERS = {
 }
 
 
-# Web server for Render health check
 async def handle_health(request):
-    return web.Response(text="Diskwala Pro Bot is Active!")
+    return web.Response(text="Diskwala Bot is Online!")
 
 
 async def start_web_server():
@@ -138,12 +137,13 @@ async def extract_url(diskwala_url):
         return None, str(e)
 
 
-# Pyrogram Bot Client
+# Pyrogram Client with IN_MEMORY Session to prevent Render file lock crashes
 bot = Client(
     "diskwala_bot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
+    in_memory=True,
 )
 
 
@@ -152,7 +152,7 @@ async def start_cmd(client, message):
     await message.reply_text(
         f"👋 **Hello {message.from_user.first_name}!**\n\n"
         "⚡ **Welcome to Diskwala Direct Bot.**\n"
-        "Diskwala link pampi, direct Telegram Video File teeskondi!"
+        "Diskwala link pampi, direct streaming links teeskondi!"
     )
 
 
@@ -162,7 +162,7 @@ async def handle_msg(client, message):
     if text.startswith("/") or "http" not in text:
         return
 
-    status = await message.reply_text("🔎 **Fetching Diskwala Direct Link...**")
+    status = await message.reply_text("🔎 **Fetching Direct Stream Link...**")
     stream_url, err = await extract_url(text)
 
     if not stream_url:
@@ -176,50 +176,10 @@ async def handle_msg(client, message):
         ]
     )
 
-    file_path = f"video_{message.id}.mp4"
-
-    try:
-        await status.edit_text("📥 **Downloading Video from Diskwala...**")
-
-        async with ClientSession(
-            headers=HEADERS, timeout=ClientTimeout(total=300)
-        ) as session:
-            async with session.get(stream_url) as resp:
-                if resp.status == 200:
-                    with open(file_path, "wb") as f:
-                        async for chunk in resp.content.iter_chunked(
-                            1024 * 1024
-                        ):
-                            if chunk:
-                                f.write(chunk)
-                else:
-                    await status.edit_text(
-                        "⚡ **Direct Link Extracted!**\n\nChoose an option below:",
-                        reply_markup=buttons,
-                    )
-                    return
-
-        await status.edit_text("📤 **Uploading Video to Telegram...**")
-
-        await client.send_video(
-            chat_id=message.chat.id,
-            video=file_path,
-            caption="⚡ **Downloaded via Diskwala Bot**",
-            reply_markup=buttons,
-            supports_streaming=True,
-        )
-
-        await status.delete()
-
-    except Exception:
-        await status.edit_text(
-            "⚡ **Direct Link Extracted Successfully!**\n\nChoose an option below:",
-            reply_markup=buttons,
-        )
-
-    finally:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+    await status.edit_text(
+        "⚡ **Direct Stream Link Extracted!**\n\nClick below to play or download directly:",
+        reply_markup=buttons,
+    )
 
 
 async def main():
@@ -228,7 +188,7 @@ async def main():
         await start_web_server()
         print("🚀 Starting Telegram Bot...")
         await bot.start()
-        print("✅ Diskwala Bot is Fully LIVE and Operational!")
+        print("✅ Diskwala Bot is LIVE!")
         while True:
             await asyncio.sleep(3600)
     except Exception as e:
