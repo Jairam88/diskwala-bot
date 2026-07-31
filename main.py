@@ -7,7 +7,7 @@ from extractor import extract_direct_url
 
 
 async def handle_health(request):
-    return web.Response(text="Diskwala Bot is Running 24/7!")
+    return web.Response(text="Diskwala Bot Running!")
 
 
 async def start_web_server():
@@ -30,10 +30,7 @@ bot = Client(
 
 @bot.on_message(filters.command("start"))
 async def start_cmd(client, message):
-    await message.reply_text(
-        "👋 **Hi Babai!**\n\nDiskwala link emaina unte ikkada paste"
-        " cheyyi. Direct stream link extract chesi istha!"
-    )
+    await message.reply_text("👋 Hi Babai! Diskwala link pampu, bypass chesi istha!")
 
 
 @bot.on_message(filters.text & filters.private)
@@ -44,10 +41,7 @@ async def handle_diskwala_link(client, message):
         await message.reply_text("❌ Please valid Diskwala URL pampu mowa!")
         return
 
-    status_msg = await message.reply_text(
-        "⏳ **Processing Link...** Diskwala link bypass chesthunna, 2 seconds"
-        " wait cheyyi..."
-    )
+    status_msg = await message.reply_text("⏳ Processing Link...")
 
     try:
         stream_link, debug_info = await extract_direct_url(user_text)
@@ -56,36 +50,31 @@ async def handle_diskwala_link(client, message):
             reply_content = (
                 "🎉 **Video Link Extracted!**\n\n"
                 f"🔗 **Direct Stream URL:**\n`{stream_link}`\n\n"
-                "💡 *Tip: Ee link ni VLC media player lo paste chesi watch"
-                " cheyyochu!*"
+                "💡 *Tip: VLC player lo watch cheskovachu!*"
             )
             await status_msg.edit_text(reply_content)
         else:
-            cf_status = (
-                "YES 🔴 (Cloudflare Blocked)"
-                if debug_info.get("cloudflare_blocked")
-                else "NO 🟢"
-            )
             status = debug_info.get("status", "N/A")
             err = debug_info.get("error", "None")
+            keys = "\n".join(debug_info.get("found_keys", [])) or "None"
 
             debug_msg = (
                 "⚠️ **Video link dorakaledhu babai.**\n\n"
                 "🔍 **Diagnostic Info:**\n"
-                f"• **HTTP Status Code:** `{status}`\n"
-                f"• **Cloudflare Blocked?:** `{cf_status}`\n"
-                f"• **Error Details:** `{err}`"
+                f"• **HTTP Status:** `{status}`\n"
+                f"• **Error:** `{err}`\n"
+                f"• **Found JSON Keys:**\n`{keys}`"
             )
             await status_msg.edit_text(debug_msg)
 
     except Exception as err:
-        await status_msg.edit_text(f"❌ Critical Error: {str(err)}")
+        await status_msg.edit_text(f"❌ Error: {str(err)}")
 
 
 async def main():
     await start_web_server()
     await bot.start()
-    print("Bot started successfully!")
+    print("Bot started!")
     await idle()
     await bot.stop()
 
